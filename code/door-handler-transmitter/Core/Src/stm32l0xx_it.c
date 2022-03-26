@@ -23,6 +23,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "ltr_329.h"
+#include "hc12.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -43,7 +44,10 @@
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN PV */
 I2C_HandleTypeDef *hi2c;
+UART_HandleTypeDef *huart;
 LTR_329_measurement measurement;
+uint8_t uart_buffer_tx[] = "Ring-Ring\n";
+uint8_t light_on = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -148,12 +152,25 @@ void SysTick_Handler(void)
 void TIM21_IRQHandler(void)
 {
   /* USER CODE BEGIN TIM21_IRQn 0 */
+
+	HAL_ResumeTick();
 	LTR_329_readMeasurement(hi2c, &measurement);
 
 	if (measurement.channel1 > 500) {
 		HAL_GPIO_WritePin(SYNC_STATE_LED_GPIO_Port, SYNC_STATE_LED_Pin, 1);
+
+		if (light_on == 0) {
+			HC12_wakeUp(huart);
+			HAL_UART_Transmit(huart, uart_buffer_tx, sizeof(uart_buffer_tx), 400);
+			HAL_Delay(200); // This delay needed, otherwise the controller would shot down the ongoing wireless transmission
+			HC12_sleep(huart);
+		}
+
+		light_on = 1;
 	} else {
 		HAL_GPIO_WritePin(SYNC_STATE_LED_GPIO_Port, SYNC_STATE_LED_Pin, 0);
+
+		light_on = 0;
 	}
 
   /* USER CODE END TIM21_IRQn 0 */
@@ -164,8 +181,9 @@ void TIM21_IRQHandler(void)
 }
 
 /* USER CODE BEGIN 1 */
-void IT_setI2CInstance(I2C_HandleTypeDef *_hi2c) {
+void IT_setI2CInstance(I2C_HandleTypeDef *_hi2c, UART_HandleTypeDef *_huart) {
 	hi2c = _hi2c;
+	huart = _huart;
 }
 /* USER CODE END 1 */
 

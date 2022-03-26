@@ -23,6 +23,7 @@
 /* USER CODE BEGIN Includes */
 #include "stm32l0xx_it.h"
 #include "ltr_329.h"
+#include "hc12.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -99,7 +100,8 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
   // Starting the measurement timer
-  IT_setI2CInstance(&hi2c1);
+  IT_setI2CInstance(&hi2c1, &hlpuart1);
+  HC12_sleep(&hlpuart1);
   HAL_TIM_Base_Start_IT(&htim21);
   LTR_329_init(&hi2c1);
   LTR_329_writeMeasurementRate(&hi2c1, 0b00100010);
@@ -108,6 +110,10 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  HAL_SuspendTick();
+  HAL_PWR_EnableSleepOnExit();
+  HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
+
   while (1)
   {
     /* USER CODE END WHILE */
@@ -116,10 +122,6 @@ int main(void)
 	  // With 48x flux:
 	  // Light off ch1 = 95 ch0 = 54
 	  // Light on ch1 = 1106 ch0 = 822
-
-	  HAL_SuspendTick();
-	  HAL_PWR_EnableSleepOnExit();
-	  HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
 
 //	  HAL_Delay(500);
   }
@@ -234,8 +236,8 @@ static void MX_LPUART1_UART_Init(void)
 
   /* USER CODE END LPUART1_Init 1 */
   hlpuart1.Instance = LPUART1;
-  hlpuart1.Init.BaudRate = 209700;
-  hlpuart1.Init.WordLength = UART_WORDLENGTH_7B;
+  hlpuart1.Init.BaudRate = 9600;
+  hlpuart1.Init.WordLength = UART_WORDLENGTH_8B;
   hlpuart1.Init.StopBits = UART_STOPBITS_1;
   hlpuart1.Init.Parity = UART_PARITY_NONE;
   hlpuart1.Init.Mode = UART_MODE_TX_RX;
@@ -311,14 +313,17 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOA_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(AT_SET_GPIO_Port, AT_SET_Pin, GPIO_PIN_SET);
+
+  /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(SYNC_STATE_LED_GPIO_Port, SYNC_STATE_LED_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pin : SYNC_STATE_LED_Pin */
-  GPIO_InitStruct.Pin = SYNC_STATE_LED_Pin;
+  /*Configure GPIO pins : AT_SET_Pin SYNC_STATE_LED_Pin */
+  GPIO_InitStruct.Pin = AT_SET_Pin|SYNC_STATE_LED_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(SYNC_STATE_LED_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pin : SYNC_TIME_BTN_Pin */
   GPIO_InitStruct.Pin = SYNC_TIME_BTN_Pin;

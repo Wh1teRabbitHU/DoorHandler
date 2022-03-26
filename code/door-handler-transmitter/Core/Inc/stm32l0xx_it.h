@@ -53,7 +53,7 @@ void PendSV_Handler(void);
 void SysTick_Handler(void);
 void TIM21_IRQHandler(void);
 /* USER CODE BEGIN EFP */
-void IT_setI2CInstance(I2C_HandleTypeDef *hi2c);
+void IT_setI2CInstance(I2C_HandleTypeDef *_hi2c, UART_HandleTypeDef *_huart);
 /* USER CODE END EFP */
 
 #ifdef __cplusplus
